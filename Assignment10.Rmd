@@ -196,7 +196,7 @@ data.frame(
 )
 ```
 
-**Description:** An elastic net regression model was applied to assess associations between environmental exposures and cognitive performance. The optimal model, selected at α = 0.6 and λ = 0.178. Four predictors with non-zero coefficients were retained: prenatal NDVI (`h_ndvi100_preg_None`), built environment density (`h_builtdens300_preg_Sqrt`), postnatal NDVI (`hs_ndvi100_h_None`), and birth weight (`e3_bw`). Binary green space indicators and NO₂ were reduced to zero. 
+**Description:** An elastic net regression model was applied to assess associations between environmental exposures and cognitive performance. The optimal model was selected at α = 0.6 and λ = 0.178. Four predictors with non-zero coefficients were retained: prenatal NDVI (`h_ndvi100_preg_None`), built environment density (`h_builtdens300_preg_Sqrt`), postnatal NDVI (`hs_ndvi100_h_None`), and birth weight (`e3_bw`). Binary green space indicators and NO₂ were reduced to zero. 
 
 In the testing set, the model yielded an RMSE of **6.18** and an R-squared of **0.036**, indicating that the selected variables accounted for only 3.56% of the variance in cognitive performance. These findings indicate that the included environmental exposures have limited predictive value for cognitive performance in this sample and should be interpreted cautiously. However, the prominence of NDVI-based vegetation measures as predictors offers a foundation for future hypothesis-driven research on the influence of green space in child cognitive development.
 
