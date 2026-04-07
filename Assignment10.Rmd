@@ -170,7 +170,7 @@ data.frame(
 )
 ```
 
-**Description:** The elastic net regression model was used to examine whether environmental exposures were associated with cognitive performance. In the testing set, the model had an RMSE of 6.18 and an R-squared of 0.036. This indicates that the selected variables explained only a small proportion of the variation (3.56%) in cognitive performance. These results suggest that the selected environmental exposures have limited predictive ability for cognitive performance in this sample. However, the findings should be interpreted with caution, as only a subset of exposures was included. Overall, the model provides a useful hypothesis-generating approach for exploring possible associations between environmental quality and child cognitive outcomes.
+**Description:** The elastic net regression model was used to examine whether environmental exposures were associated with cognitive performance. In the testing set, the model had an RMSE of 6.18 and an R-squared of 0.036. This indicates that the selected variables explained only a small proportion of the variation (3.56%) in cognitive performance (IQ). These results suggest that the selected environmental exposures have limited predictive ability for cognitive performance in this sample. However, the findings should be interpreted with caution, as only a subset of exposures was included. Overall, the model provides a useful hypothesis-generating approach for exploring possible associations between environmental quality and child cognitive outcomes.
 
 ---
 
