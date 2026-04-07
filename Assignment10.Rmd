@@ -160,6 +160,32 @@ EN_model = train(
   tuneLength = 10
 )
 
+# Best tuning parameters
+EN_model$bestTune
+
+# Extract coefficients at best lambda
+coef_vals = coef(EN_model$finalModel, s = EN_model$bestTune$lambda)
+
+# Convert to data frame and remove intercept
+coef_df = as.data.frame(as.matrix(coef_vals))
+colnames(coef_df) = "Coefficient"
+coef_df$Variable = rownames(coef_df)
+coef_df = coef_df[coef_df$Variable != "(Intercept)", ]
+coef_df = coef_df[coef_df$Coefficient != 0, ]  # keep only non-zero (selected) terms
+
+# Print coefficients
+print(coef_df)
+
+# Plot
+library(ggplot2)
+ggplot(coef_df, aes(x = reorder(Variable, Coefficient), y = Coefficient)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  coord_flip() +
+  labs(title = "Elastic Net Coefficients",
+       x = "Variable",
+       y = "Coefficient") +
+  theme_minimal()
+
 # Predict
 EN_model.pred = EN_model |> predict(test.data)
 
@@ -170,7 +196,9 @@ data.frame(
 )
 ```
 
-**Description:** The elastic net regression model was used to examine whether environmental exposures were associated with cognitive performance. In the testing set, the model had an RMSE of 6.18 and an R-squared of 0.036. This indicates that the selected variables explained only a small proportion of the variation (3.56%) in cognitive performance (IQ). These results suggest that the selected environmental exposures have limited predictive ability for cognitive performance in this sample. However, the findings should be interpreted with caution, as only a subset of exposures was included. Overall, the model provides a useful hypothesis-generating approach for exploring possible associations between environmental quality and child cognitive outcomes.
+**Description:** An elastic net regression model was applied to assess associations between environmental exposures and cognitive performance. The optimal model, selected at α = 0.6 and λ = 0.178. Four predictors with non-zero coefficients were retained: prenatal NDVI (`h_ndvi100_preg_None`), built environment density (`h_builtdens300_preg_Sqrt`), postnatal NDVI (`hs_ndvi100_h_None`), and birth weight (`e3_bw`). Binary green space indicators and NO₂ were reduced to zero. 
+
+In the testing set, the model yielded an RMSE of **6.18** and an R-squared of **0.036**, indicating that the selected variables accounted for only 3.56% of the variance in cognitive performance. These findings indicate that the included environmental exposures have limited predictive value for cognitive performance in this sample and should be interpreted cautiously. However, the prominence of NDVI-based vegetation measures as predictors offers a foundation for future hypothesis-driven research on the influence of green space in child cognitive development.
 
 ---
 
