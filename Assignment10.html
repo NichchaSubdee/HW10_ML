@@ -356,36 +356,247 @@ display: none;
 <div id="topic-using-real-world-data-for-hypothesis-generation" class="section level3">
 <h3><strong>Topic: Using real-world data for hypothesis
 generation</strong></h3>
-<p>Please turn in a knit document that contains the following
-elements:</p>
-<ol style="list-style-type: decimal">
-<li><p>Examine the different features within the data frames and provide
-some descriptive measures (for continuous measures: means and ranges,
-for categorical/binary: frequency counts). Feel free to look at
+<p><strong>Dataset:</strong> exposome.RData</p>
+<hr />
+<p><strong>1. Examine the different features within the data frames and
+provide some descriptive measures (for continuous measures: means and
+ranges, for categorical/binary: frequency counts). Feel free to look at
 correlations between features, examine missingness, and other
 exploratory data analyses. You don’t need to do this for all features
 within the data frames (although you could) but you should document
 summaries for at least 5 features from exposome and 1 feature from
-phenotype. These don’t need to be formatted into tables or data frames.
-Just document that you’ve done some data exploration.</p></li>
-<li><p>Develop a single research question. It can be a prediction or
-hypothesis generating research question. It doesn’t need to involve all
-features but it must involve at least one outcome from phenotype and 5
-features from exposome (and covariates if relevant). This can be as
-simple or complex as a question as you want it to be. Clearly state the
-research question in a complete sentence outside of a code chunk, not as
-a comment within one.</p></li>
-<li><p>Implement one algorithm from class that we’ve used previously to
-address your question. For this assignment, you should partition your
-data, develop the model in training (including hyperparameter turning
-and cross-validation) and then get final evaluation metrics in testing
-data. You can use package defaults for tuning or create your own
-vectors/grids. This is to keep getting practice with implementing
-algorithms so do as much as you would like and find useful.</p></li>
-<li><p>Optional: Adapt the sample code for elastic net within the
-provided .RMD file to examine two-way interactions using the features
-and outcome you selected.</p></li>
-</ol>
+phenotype.</strong></p>
+<p><strong>ANSWER:</strong></p>
+<p><strong>Import dataset</strong></p>
+<pre class="r"><code>library(tidyverse)
+library(caret)
+library(glmnet)
+
+# Load data
+load(&quot;exposome.RData&quot;)
+
+# Merge all data frames into a single data frame
+studydata = merge(exposome, phenotype, by = &quot;ID&quot;) |&gt; 
+  merge(covariates, by = &quot;ID&quot;)
+
+# Remove ID
+studydata$ID = NULL
+
+# Keep variables for this analysis
+studydata = studydata |&gt; 
+  select(
+    hs_correct_raven,
+    h_greenyn300_preg_None,
+    h_ndvi100_preg_None,
+    hs_greenyn300_h_None,
+    hs_ndvi100_h_None,
+    h_NO2_Log,
+    h_builtdens300_preg_Sqrt,
+    e3_bw
+  )</code></pre>
+<p><strong>Exploratory data analysis</strong></p>
+<pre class="r"><code># Outcome
+summary(studydata$hs_correct_raven)</code></pre>
+<pre><code>##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##    9.00   22.00   27.00   26.29   32.00   36.00</code></pre>
+<pre class="r"><code>mean(studydata$hs_correct_raven, na.rm = TRUE)</code></pre>
+<pre><code>## [1] 26.28824</code></pre>
+<pre class="r"><code>range(studydata$hs_correct_raven, na.rm = TRUE)</code></pre>
+<pre><code>## [1]  9 36</code></pre>
+<pre class="r"><code># Exposome variables: continuous
+summary(studydata$h_ndvi100_preg_None)</code></pre>
+<pre><code>##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##  0.1062  0.2488  0.4105  0.3917  0.5158  0.7354</code></pre>
+<pre class="r"><code>mean(studydata$h_ndvi100_preg_None, na.rm = TRUE)</code></pre>
+<pre><code>## [1] 0.3917125</code></pre>
+<pre class="r"><code>range(studydata$h_ndvi100_preg_None, na.rm = TRUE)</code></pre>
+<pre><code>## [1] 0.1061946 0.7354429</code></pre>
+<pre class="r"><code>summary(studydata$hs_ndvi100_h_None)</code></pre>
+<pre><code>##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+## 0.09675 0.31847 0.47907 0.45053 0.57471 0.81432</code></pre>
+<pre class="r"><code>mean(studydata$hs_ndvi100_h_None, na.rm = TRUE)</code></pre>
+<pre><code>## [1] 0.4505269</code></pre>
+<pre class="r"><code>range(studydata$hs_ndvi100_h_None, na.rm = TRUE)</code></pre>
+<pre><code>## [1] 0.09675429 0.81432121</code></pre>
+<pre class="r"><code>summary(studydata$h_NO2_Log)</code></pre>
+<pre><code>##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##   1.573   2.979   3.617   3.833   4.576   7.093</code></pre>
+<pre class="r"><code>mean(studydata$h_NO2_Log, na.rm = TRUE)</code></pre>
+<pre><code>## [1] 3.832765</code></pre>
+<pre class="r"><code>range(studydata$h_NO2_Log, na.rm = TRUE)</code></pre>
+<pre><code>## [1] 1.573213 7.092562</code></pre>
+<pre class="r"><code>summary(studydata$h_builtdens300_preg_Sqrt)</code></pre>
+<pre><code>##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##   11.02  340.04  401.49  417.06  502.97  807.57</code></pre>
+<pre class="r"><code>mean(studydata$h_builtdens300_preg_Sqrt, na.rm = TRUE)</code></pre>
+<pre><code>## [1] 417.0643</code></pre>
+<pre class="r"><code>range(studydata$h_builtdens300_preg_Sqrt, na.rm = TRUE)</code></pre>
+<pre><code>## [1]  11.01832 807.56747</code></pre>
+<pre class="r"><code># Exposome variables: binary
+table(studydata$h_greenyn300_preg_None, useNA = &quot;ifany&quot;)</code></pre>
+<pre><code>## 
+##   0   1 
+## 321 980</code></pre>
+<pre class="r"><code>table(studydata$hs_greenyn300_h_None, useNA = &quot;ifany&quot;)</code></pre>
+<pre><code>## 
+##    0    1 
+##  274 1027</code></pre>
+<pre class="r"><code># Missingness count
+colSums(is.na(studydata))</code></pre>
+<pre><code>##         hs_correct_raven   h_greenyn300_preg_None      h_ndvi100_preg_None 
+##                        0                        0                        0 
+##     hs_greenyn300_h_None        hs_ndvi100_h_None                h_NO2_Log 
+##                        0                        0                        0 
+## h_builtdens300_preg_Sqrt                    e3_bw 
+##                        0                        0</code></pre>
+<pre class="r"><code># Missingness proportion
+colMeans(is.na(studydata))</code></pre>
+<pre><code>##         hs_correct_raven   h_greenyn300_preg_None      h_ndvi100_preg_None 
+##                        0                        0                        0 
+##     hs_greenyn300_h_None        hs_ndvi100_h_None                h_NO2_Log 
+##                        0                        0                        0 
+## h_builtdens300_preg_Sqrt                    e3_bw 
+##                        0                        0</code></pre>
+<pre class="r"><code># Covariate: birth weight
+summary(studydata$e3_bw)</code></pre>
+<pre><code>##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##    1100    3080    3398    3389    3720    5260</code></pre>
+<pre class="r"><code>mean(studydata$e3_bw, na.rm = TRUE)</code></pre>
+<pre><code>## [1] 3389.302</code></pre>
+<pre class="r"><code>range(studydata$e3_bw, na.rm = TRUE)</code></pre>
+<pre><code>## [1] 1100 5260</code></pre>
+<pre class="r"><code># Correlation among numeric variables
+numeric_vars = studydata %&gt;% select(where(is.numeric))
+cor(numeric_vars)</code></pre>
+<pre><code>##                          hs_correct_raven h_ndvi100_preg_None hs_ndvi100_h_None
+## hs_correct_raven               1.00000000           0.1498355         0.1385390
+## h_ndvi100_preg_None            0.14983550           1.0000000         0.6761227
+## hs_ndvi100_h_None              0.13853901           0.6761227         1.0000000
+## h_NO2_Log                     -0.06534646          -0.2568914        -0.4084560
+## h_builtdens300_preg_Sqrt       0.01238291          -0.6301842        -0.4886789
+## e3_bw                          0.12106298           0.1904669         0.1509159
+##                             h_NO2_Log h_builtdens300_preg_Sqrt        e3_bw
+## hs_correct_raven         -0.065346463               0.01238291  0.121062978
+## h_ndvi100_preg_None      -0.256891431              -0.63018415  0.190466901
+## hs_ndvi100_h_None        -0.408456017              -0.48867894  0.150915912
+## h_NO2_Log                 1.000000000               0.26468008 -0.007732229
+## h_builtdens300_preg_Sqrt  0.264680083               1.00000000 -0.104205194
+## e3_bw                    -0.007732229              -0.10420519  1.000000000</code></pre>
+<p><strong>Description:</strong> One outcome variable
+(<code>hs_correct_raven</code>) and five exposome variables related to
+environmental quality were explored, including green space, vegetation
+(NDVI), air pollution (NO2), and built environment. Birth weight (e3_bw)
+was included as a covariate.</p>
+<p>The outcome variable, <code>hs_correct_raven</code>, is continuous.
+The mean score was 26.29, with a range from 9 to 36, indicating
+variation in cognitive performance among children.</p>
+<p>For the exposome variables, NDVI measures during pregnancy and at
+home had means of 0.39 and 0.45, respectively, with wide ranges,
+indicating differences in surrounding vegetation. Air pollution (NO2)
+also varied across participants, with a mean of 3.83. Built density
+showed a large range, suggesting differences in urban environments.</p>
+<p>For binary variables, most children were exposed to green space
+within 300 meters during pregnancy (980 vs. 321) and at home (1027
+vs. 274).</p>
+<p>Birth weight (e3_bw) was examined as a continuous covariate, with a
+mean of 3,389 grams and a range from 1,100 to 5,260 grams.</p>
+<p>Correlations among numeric variables were examined. NDVI measures
+during pregnancy and at home showed a moderate positive correlation (r ≈
+0.68), indicating they capture similar aspects of vegetation. NDVI was
+negatively correlated with air pollution (NO2) and built density,
+suggesting that greener areas tend to have lower pollution and less
+dense environments.</p>
+<p>Lastly, there were no missing values in the selected variables
+above.</p>
+<hr />
+<p><strong>2. Develop a single research question. It can be a prediction
+or hypothesis generating research question. It doesn’t need to involve
+all features but it must involve at least one outcome from phenotype and
+5 features from exposome (and covariates if relevant).</strong></p>
+<p><strong>ANSWER:</strong></p>
+<p><strong>Outcome variable:</strong> <code>hs_correct_raven</code>
+(Intelligence quotient at 6-11 years old - Total of correct answers at
+the RAVEN test)</p>
+<p><strong>Features from exposome:</strong></p>
+<ul>
+<li><code>h_greenyn300_preg_None</code> (Is there a greenspace in a
+distance of 300m?at pregnancy period)</li>
+<li><code>h_ndvi100_preg_None</code> (Average of NDVI values within a
+buffer of 100mat pregnancy period)</li>
+<li><code>hs_greenyn300_h_None</code> (Is there a greenspace in a
+distance of 300m?at home)</li>
+<li><code>hs_ndvi100_h_None</code> (Average of NDVI values within a
+buffer of 100mat home)</li>
+<li><code>h_NO2_Log</code> (Concentration of indoor NO2)</li>
+<li><code>h_builtdens300_preg_Sqrt</code> (Building density (m2
+built/km2) within a buffers of 300mat pregnancy period)</li>
+</ul>
+<p><strong>Research question:</strong> Is cognitive performance,
+measured by intelligence quotient (<code>hs_correct_raven</code>),
+associated with environmental exposures such as green space, vegetation,
+air pollution, and built environment?</p>
+<hr />
+<p><strong>3. Implement one algorithm from class that we’ve used
+previously to address your question. For this assignment, you should
+partition your data, develop the model in training (including
+hyperparameter turning and cross-validation) and then get final
+evaluation metrics in testing data. You can use package defaults for
+tuning or create your own vectors/grids. This is to keep getting
+practice with implementing algorithms so do as much as you would like
+and find useful.</strong></p>
+<p><strong>ANSWER:</strong></p>
+<p>To address the research question, an elastic net regression model was
+applied. The data were first partitioned into training and testing sets
+(70:30). The model was trained using 10-fold cross-validation with
+hyperparameter tuning. Model performance was then evaluated in the
+testing set using RMSE and R-squared.</p>
+<pre class="r"><code># Partition data
+set.seed(123)
+train.indices = createDataPartition(y = studydata$hs_correct_raven, p = 0.7, list = FALSE)
+
+train.data = studydata[train.indices, ]
+test.data  = studydata[-train.indices, ]
+
+# Train model
+set.seed(123)
+EN_model = train(
+  hs_correct_raven ~ 
+    h_greenyn300_preg_None +
+    h_ndvi100_preg_None +
+    hs_greenyn300_h_None +
+    hs_ndvi100_h_None +
+    h_NO2_Log +
+    h_builtdens300_preg_Sqrt +
+    e3_bw,
+  data = train.data,
+  preProcess = &quot;scale&quot;,
+  method = &quot;glmnet&quot;,
+  trControl = trainControl(&quot;cv&quot;, number = 10),
+  tuneLength = 10
+)
+
+# Predict
+EN_model.pred = EN_model |&gt; predict(test.data)
+
+# Evaluate
+data.frame(
+  RMSE = RMSE(EN_model.pred, test.data$hs_correct_raven),
+  Rsquare = R2(EN_model.pred, test.data$hs_correct_raven)
+)</code></pre>
+<pre><code>##       RMSE    Rsquare
+## 1 6.179683 0.03560444</code></pre>
+<p><strong>Description:</strong> The elastic net regression model was
+used to examine whether environmental exposures were associated with
+cognitive performance. In the testing set, the model had an RMSE of 6.18
+and an R-squared of 0.036. This indicates that the selected variables
+explained only a small proportion of the variation (3.56%) in cognitive
+performance. These results suggest that the selected environmental
+exposures have limited predictive ability for cognitive performance in
+this sample. However, the findings should be interpreted with caution,
+as only a subset of exposures was included. Overall, the model provides
+a useful hypothesis-generating approach for exploring possible
+associations between environmental quality and child cognitive
+outcomes.</p>
 <hr />
 <div id="ai-tools" class="section level4">
 <h4><strong>AI tools</strong></h4>

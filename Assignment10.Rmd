@@ -9,21 +9,168 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ### **Topic: Using real-world data for hypothesis generation**
 
-Please turn in a knit document that contains the following elements:
+**Dataset:** exposome.RData
 
-1. Examine the different features within the data frames and provide some descriptive measures (for continuous measures: means and ranges, for categorical/binary: frequency counts). Feel free to look at correlations between features, examine missingness, and other exploratory data analyses. You don't need to do this for all features within the data frames (although you could) but you should document summaries for at least 5 features from exposome and 1 feature from phenotype. These don't need to be formatted into tables or data frames. Just document that you've done some data exploration. 
+---
 
-2. Develop a single research question. It can be a prediction or hypothesis generating research question. It doesn't need to involve all features but it must involve at least one outcome from phenotype and 5 features from exposome (and covariates if relevant). This can be as simple or complex as a question as you want it to be. Clearly state the research question in a complete sentence outside of a code chunk, not as a comment within one.
+**1. Examine the different features within the data frames and provide some descriptive measures (for continuous measures: means and ranges, for categorical/binary: frequency counts). Feel free to look at correlations between features, examine missingness, and other exploratory data analyses. You don't need to do this for all features within the data frames (although you could) but you should document summaries for at least 5 features from exposome and 1 feature from phenotype.** 
 
-3. Implement one algorithm from class that we've used previously to address your question. For this assignment, you should partition your data, develop the model in training (including hyperparameter turning and cross-validation) and then get final evaluation metrics in testing data. You can use package defaults for tuning or create your own vectors/grids. This is to keep getting practice with implementing algorithms so do as much as you would like and find useful.
+**ANSWER:**
 
-4. Optional: Adapt the sample code for elastic net within the provided .RMD file to examine two-way interactions using the features and outcome you selected.
+**Import dataset**
+```{r import, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(caret)
+library(glmnet)
 
+# Load data
+load("exposome.RData")
 
+# Merge all data frames into a single data frame
+studydata = merge(exposome, phenotype, by = "ID") |> 
+  merge(covariates, by = "ID")
 
+# Remove ID
+studydata$ID = NULL
 
+# Keep variables for this analysis
+studydata = studydata |> 
+  select(
+    hs_correct_raven,
+    h_greenyn300_preg_None,
+    h_ndvi100_preg_None,
+    hs_greenyn300_h_None,
+    hs_ndvi100_h_None,
+    h_NO2_Log,
+    h_builtdens300_preg_Sqrt,
+    e3_bw
+  )
 
+```
 
+**Exploratory data analysis**
+
+```{r Q1_EDA, message=FALSE}
+# Outcome
+summary(studydata$hs_correct_raven)
+mean(studydata$hs_correct_raven, na.rm = TRUE)
+range(studydata$hs_correct_raven, na.rm = TRUE)
+
+# Exposome variables: continuous
+summary(studydata$h_ndvi100_preg_None)
+mean(studydata$h_ndvi100_preg_None, na.rm = TRUE)
+range(studydata$h_ndvi100_preg_None, na.rm = TRUE)
+
+summary(studydata$hs_ndvi100_h_None)
+mean(studydata$hs_ndvi100_h_None, na.rm = TRUE)
+range(studydata$hs_ndvi100_h_None, na.rm = TRUE)
+
+summary(studydata$h_NO2_Log)
+mean(studydata$h_NO2_Log, na.rm = TRUE)
+range(studydata$h_NO2_Log, na.rm = TRUE)
+
+summary(studydata$h_builtdens300_preg_Sqrt)
+mean(studydata$h_builtdens300_preg_Sqrt, na.rm = TRUE)
+range(studydata$h_builtdens300_preg_Sqrt, na.rm = TRUE)
+
+# Exposome variables: binary
+table(studydata$h_greenyn300_preg_None, useNA = "ifany")
+table(studydata$hs_greenyn300_h_None, useNA = "ifany")
+
+# Missingness count
+colSums(is.na(studydata))
+
+# Missingness proportion
+colMeans(is.na(studydata))
+
+# Covariate: birth weight
+summary(studydata$e3_bw)
+mean(studydata$e3_bw, na.rm = TRUE)
+range(studydata$e3_bw, na.rm = TRUE)
+
+# Correlation among numeric variables
+numeric_vars = studydata %>% select(where(is.numeric))
+cor(numeric_vars)
+```
+
+**Description:** One outcome variable (`hs_correct_raven`) and five exposome variables related to environmental quality were explored, including green space, vegetation (NDVI), air pollution (NO2), and built environment. Birth weight (e3_bw) was included as a covariate. 
+
+The outcome variable, `hs_correct_raven`, is continuous. The mean score was 26.29, with a range from 9 to 36, indicating variation in cognitive performance among children.
+
+For the exposome variables, NDVI measures during pregnancy and at home had means of 0.39 and 0.45, respectively, with wide ranges, indicating differences in surrounding vegetation. Air pollution (NO2) also varied across participants, with a mean of 3.83. Built density showed a large range, suggesting differences in urban environments.
+
+For binary variables, most children were exposed to green space within 300 meters during pregnancy (980 vs. 321) and at home (1027 vs. 274).
+
+Birth weight (e3_bw) was examined as a continuous covariate, with a mean of 3,389 grams and a range from 1,100 to 5,260 grams.
+
+Correlations among numeric variables were examined. NDVI measures during pregnancy and at home showed a moderate positive correlation (r ≈ 0.68), indicating they capture similar aspects of vegetation. NDVI was negatively correlated with air pollution (NO2) and built density, suggesting that greener areas tend to have lower pollution and less dense environments.
+
+Lastly, there were no missing values in the selected variables above.
+
+---
+
+**2. Develop a single research question. It can be a prediction or hypothesis generating research question. It doesn't need to involve all features but it must involve at least one outcome from phenotype and 5 features from exposome (and covariates if relevant).**
+
+**ANSWER:**
+
+**Outcome variable:**	`hs_correct_raven` (Intelligence quotient at 6-11 years old - Total of correct answers at the RAVEN test)
+
+**Features from exposome:** 
+
+* `h_greenyn300_preg_None` (Is there a greenspace in a distance of 300m?at pregnancy period)
+* `h_ndvi100_preg_None` (Average of NDVI values within a buffer of 100mat pregnancy period)
+* `hs_greenyn300_h_None` (Is there a greenspace in a distance of 300m?at home)
+* `hs_ndvi100_h_None` (Average of NDVI values within a buffer of 100mat home)
+* `h_NO2_Log` (Concentration of indoor NO2)
+* `h_builtdens300_preg_Sqrt` (Building density (m2 built/km2) within a buffers of 300mat pregnancy period)
+
+**Research question:** Is cognitive performance, measured by intelligence quotient (`hs_correct_raven`), associated with environmental exposures such as green space, vegetation, air pollution, and built environment?
+
+---
+
+**3. Implement one algorithm from class that we've used previously to address your question. For this assignment, you should partition your data, develop the model in training (including hyperparameter turning and cross-validation) and then get final evaluation metrics in testing data. You can use package defaults for tuning or create your own vectors/grids. This is to keep getting practice with implementing algorithms so do as much as you would like and find useful.**
+
+**ANSWER:**
+
+To address the research question, an elastic net regression model was applied. The data were first partitioned into training and testing sets (70:30). The model was trained using 10-fold cross-validation with hyperparameter tuning. Model performance was then evaluated in the testing set using RMSE and R-squared.
+
+```{r Q3, message=FALSE}
+# Partition data
+set.seed(123)
+train.indices = createDataPartition(y = studydata$hs_correct_raven, p = 0.7, list = FALSE)
+
+train.data = studydata[train.indices, ]
+test.data  = studydata[-train.indices, ]
+
+# Train model
+set.seed(123)
+EN_model = train(
+  hs_correct_raven ~ 
+    h_greenyn300_preg_None +
+    h_ndvi100_preg_None +
+    hs_greenyn300_h_None +
+    hs_ndvi100_h_None +
+    h_NO2_Log +
+    h_builtdens300_preg_Sqrt +
+    e3_bw,
+  data = train.data,
+  preProcess = "scale",
+  method = "glmnet",
+  trControl = trainControl("cv", number = 10),
+  tuneLength = 10
+)
+
+# Predict
+EN_model.pred = EN_model |> predict(test.data)
+
+# Evaluate
+data.frame(
+  RMSE = RMSE(EN_model.pred, test.data$hs_correct_raven),
+  Rsquare = R2(EN_model.pred, test.data$hs_correct_raven)
+)
+```
+
+**Description:** The elastic net regression model was used to examine whether environmental exposures were associated with cognitive performance. In the testing set, the model had an RMSE of 6.18 and an R-squared of 0.036. This indicates that the selected variables explained only a small proportion of the variation (3.56%) in cognitive performance. These results suggest that the selected environmental exposures have limited predictive ability for cognitive performance in this sample. However, the findings should be interpreted with caution, as only a subset of exposures was included. Overall, the model provides a useful hypothesis-generating approach for exploring possible associations between environmental quality and child cognitive outcomes.
 
 ---
 
